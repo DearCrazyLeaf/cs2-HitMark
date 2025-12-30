@@ -10,6 +10,7 @@ using CounterStrikeSharp.API.Modules.Cvars;
 using CounterStrikeSharp.API.Modules.Utils;
 using CounterStrikeSharp.API.Modules.Timers;
 using System.Collections.Generic;
+using Microsoft.Extensions.Localization;
 
 namespace CS2_HitMark;
 
@@ -20,13 +21,22 @@ public class HitMarkPlugin : BasePlugin, IPluginConfig<Config>
     public override string ModuleVersion => "1.0.0";
     public override string ModuleAuthor => "DearCrazyLeaf";
     public override string ModuleDescription => "Particle hitmark with damage digits and configurable sound toggles.";
-	public static HitMarkPlugin Instance { get; set; } = new();
+	public static HitMarkPlugin Instance { get; private set; } = null!;
     public Globals g_Main = new();
     private readonly Dictionary<uint, int> _particleOwnerByIndex = new();
     private readonly Dictionary<int, int> _activeParticleCountBySlot = new();
+    private readonly Dictionary<int, ImpactInfo> _lastImpactBySlot = new();
     private const int MinParticleLifetimeMs = 50;
+    private const float ImpactTimeoutSec = 0.2f;
+    private readonly IStringLocalizer<HitMarkPlugin> _localizer;
     
     public Config Config { get; set; } = new();
+
+    public HitMarkPlugin(IStringLocalizer<HitMarkPlugin> localizer)
+    {
+        _localizer = localizer;
+        Instance = this;
+    }
 
     public void OnConfigParsed(Config config)
     {
@@ -36,16 +46,15 @@ public class HitMarkPlugin : BasePlugin, IPluginConfig<Config>
 
     public override void Load(bool hotReload)
     {
-        Instance = this;
-    
         RegisterEventHandler<EventPlayerHurt>(OnEventPlayerHurt);
+        RegisterEventHandler<EventBulletImpact>(OnEventBulletImpact);
         RegisterEventHandler<EventRoundStart>(OnEventRoundStart);
         RegisterEventHandler<EventPlayerDisconnect>(OnPlayerDisconnect);
         RegisterListener<Listeners.OnMapEnd>(OnMapEnd);
         RegisterListener<Listeners.CheckTransmit>(OnCheckTransmit);
         RegisterListener<Listeners.OnEntityDeleted>(OnEntityDeleted);
-        AddCommand("hitmark", "Toggle hitmark particles on/off for yourself.", OnToggleHitMarkCommand);
-        AddCommand("hitsound", "Toggle hitmark sounds on/off for yourself.", OnToggleSoundCommand);
+        AddCommand("css_hitmark", "Toggle hitmark particles on/off for yourself.", OnToggleHitMarkCommand);
+        AddCommand("css_hitsound", "Toggle hitmark sounds on/off for yourself.", OnToggleSoundCommand);
 
 
         if (Config.MuteDefaultHeadshotBodyshot)
@@ -78,7 +87,7 @@ public class HitMarkPlugin : BasePlugin, IPluginConfig<Config>
         {
             if(players == null || !players.IsValid)continue;
 
-            Helper.InitializePlayerHUD(players);
+            Helper.InitializePlayerData(players);
         }
         return HookResult.Continue;
     }
@@ -89,6 +98,7 @@ public class HitMarkPlugin : BasePlugin, IPluginConfig<Config>
 
         var victim = @event.Userid;
         var dmgHealth = @event.DmgHealth;
+        var dmgArmor = @event.DmgArmor;
         var health = @event.Health;
         var Hitgroup = @event.Hitgroup;
 
@@ -97,12 +107,9 @@ public class HitMarkPlugin : BasePlugin, IPluginConfig<Config>
 
         var attacker = @event.Attacker;
         if (attacker == null || !attacker.IsValid) return HookResult.Continue;
+        if (attacker == victim) return HookResult.Continue;
 
-        bool Check_teammates_are_enemies = ConVar.Find("mp_teammates_are_enemies")!.GetPrimitiveValue<bool>() == false && attacker.TeamNum != victim.TeamNum || ConVar.Find("mp_teammates_are_enemies")!.GetPrimitiveValue<bool>() == true;
-        if (!Check_teammates_are_enemies) return HookResult.Continue;
-
-        float oldHealth = health + dmgHealth;
-        if (oldHealth == health) return HookResult.Continue;
+        int totalDamage = Math.Max(0, dmgHealth + dmgArmor);
         
         var config = Config;
         bool particleHitEnabled = config.HitMarkEnabled
@@ -117,13 +124,9 @@ public class HitMarkPlugin : BasePlugin, IPluginConfig<Config>
             return HookResult.Continue;
         }
 
-        if (config.DisableOnWarmup && Helper.IsWarmup())
-        {
-            return HookResult.Continue;
-        }
-
         bool isHeadShot = Hitgroup == 1;
-        Helper.StartHitMark(attacker, isHeadShot, dmgHealth);
+        Vector? impactPos = TryGetRecentImpact(attacker.Slot, out var impact) ? impact : null;
+        Helper.StartHitMark(attacker, victim, isHeadShot, totalDamage, impactPos);
         
         return HookResult.Continue;
     }
@@ -145,6 +148,7 @@ public class HitMarkPlugin : BasePlugin, IPluginConfig<Config>
         Helper.ClearVariables();
         _particleOwnerByIndex.Clear();
         _activeParticleCountBySlot.Clear();
+        _lastImpactBySlot.Clear();
     }
 
     public override void Unload(bool hotReload)
@@ -152,6 +156,7 @@ public class HitMarkPlugin : BasePlugin, IPluginConfig<Config>
         Helper.ClearVariables();
         _particleOwnerByIndex.Clear();
         _activeParticleCountBySlot.Clear();
+        _lastImpactBySlot.Clear();
     }
 
     private void OnToggleHitMarkCommand(CCSPlayerController? player, CommandInfo info)
@@ -164,7 +169,7 @@ public class HitMarkPlugin : BasePlugin, IPluginConfig<Config>
 
         if (!g_Main.Player_Data.ContainsKey(player))
         {
-            Helper.InitializePlayerHUD(player);
+            Helper.InitializePlayerData(player);
         }
 
         if (!g_Main.Player_Data.TryGetValue(player, out var playerData))
@@ -174,7 +179,11 @@ public class HitMarkPlugin : BasePlugin, IPluginConfig<Config>
         }
 
         playerData.HitMarkEnabled = !playerData.HitMarkEnabled;
-        info.ReplyToCommand($"Hitmark particles: {(playerData.HitMarkEnabled ? "ON" : "OFF")}");
+        info.ReplyToCommand(_localizer[
+            playerData.HitMarkEnabled
+                ? "hitmark.command.hitmark_on"
+                : "hitmark.command.hitmark_off"
+        ]);
     }
 
     private void OnToggleSoundCommand(CCSPlayerController? player, CommandInfo info)
@@ -187,7 +196,7 @@ public class HitMarkPlugin : BasePlugin, IPluginConfig<Config>
 
         if (!g_Main.Player_Data.ContainsKey(player))
         {
-            Helper.InitializePlayerHUD(player);
+            Helper.InitializePlayerData(player);
         }
 
         if (!g_Main.Player_Data.TryGetValue(player, out var playerData))
@@ -197,7 +206,21 @@ public class HitMarkPlugin : BasePlugin, IPluginConfig<Config>
         }
 
         playerData.SoundEnabled = !playerData.SoundEnabled;
-        info.ReplyToCommand($"Hitmark sounds: {(playerData.SoundEnabled ? "ON" : "OFF")}");
+        info.ReplyToCommand(_localizer[
+            playerData.SoundEnabled
+                ? "hitmark.command.sound_on"
+                : "hitmark.command.sound_off"
+        ]);
+    }
+
+    private void OnEntityDeleted(CEntityInstance entity)
+    {
+        if (entity == null)
+        {
+            return;
+        }
+
+        ReleaseParticleOwner(entity.Index);
     }
 
     private void OnCheckTransmit(CCheckTransmitInfoList infoList)
@@ -225,14 +248,46 @@ public class HitMarkPlugin : BasePlugin, IPluginConfig<Config>
         }
     }
 
-    private void OnEntityDeleted(CEntityInstance entity)
+    private HookResult OnEventBulletImpact(EventBulletImpact @event, GameEventInfo info)
     {
-        if (entity == null)
+        if (@event == null) return HookResult.Continue;
+
+        var player = @event.Userid;
+        if (player == null || !player.IsValid) return HookResult.Continue;
+
+        _lastImpactBySlot[player.Slot] = new ImpactInfo(
+            new Vector(@event.X, @event.Y, @event.Z),
+            (float)Server.CurrentTime
+        );
+
+        return HookResult.Continue;
+    }
+
+    private bool TryGetRecentImpact(int slot, out Vector position)
+    {
+        if (_lastImpactBySlot.TryGetValue(slot, out var impact))
         {
-            return;
+            if ((float)Server.CurrentTime - impact.Time <= ImpactTimeoutSec)
+            {
+                position = impact.Position;
+                return true;
+            }
         }
 
-        ReleaseParticleOwner(entity.Index);
+        position = new Vector(0f, 0f, 0f);
+        return false;
+    }
+
+    private readonly struct ImpactInfo
+    {
+        public ImpactInfo(Vector position, float time)
+        {
+            Position = position;
+            Time = time;
+        }
+
+        public Vector Position { get; }
+        public float Time { get; }
     }
 
     public bool CanSpawnParticle(int slot, int maxPerPlayer)

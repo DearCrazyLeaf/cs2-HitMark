@@ -1,0 +1,6 @@
+{
+  "hitmark.command.hitmark_on": "命中标记粒子：开启",
+  "hitmark.command.hitmark_off": "命中标记粒子：关闭",
+  "hitmark.command.sound_on": "命中音效：开启",
+  "hitmark.command.sound_off": "命中音效：关闭"
+}

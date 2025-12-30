@@ -161,7 +161,7 @@ public class Helper
         return GetGameRules()?.WarmupPeriod ?? false;
     }
 
-    public static void InitializePlayerHUD(CCSPlayerController player)
+    public static void InitializePlayerData(CCSPlayerController player)
     {
         var g_Main = HitMarkPlugin.Instance.g_Main;
         var config = HitMarkPlugin.Instance.Config;
@@ -185,19 +185,20 @@ public class Helper
         }
     }
 
-    public static void StartHitMark(CCSPlayerController player, bool headShot, int damage)
+    public static void StartHitMark(CCSPlayerController attacker, CCSPlayerController victim, bool headShot, int damage, Vector? impactPos)
     {
         var g_Main = HitMarkPlugin.Instance.g_Main;
         var config = HitMarkPlugin.Instance.Config;
 
-        if (player == null || !player.IsValid) return;
+        if (attacker == null || !attacker.IsValid) return;
+        if (victim == null || !victim.IsValid) return;
 
-        if (!g_Main.Player_Data.ContainsKey(player))
+        if (!g_Main.Player_Data.ContainsKey(attacker))
         {
-            InitializePlayerHUD(player);
+            InitializePlayerData(attacker);
         }
 
-        if (!g_Main.Player_Data.TryGetValue(player, out var playerData))
+        if (!g_Main.Player_Data.TryGetValue(attacker, out var playerData))
         {
             return;
         }
@@ -206,20 +207,20 @@ public class Helper
         {
             if (playerData.HitMarkEnabled && config.HitMarkEnabled)
             {
-                TrySpawnHitParticle(player, headShot, config);
+                TrySpawnHitParticle(attacker, victim, headShot, config, impactPos);
             }
             if (playerData.HitMarkEnabled && config.DamageDigitsEnabled)
             {
-                TrySpawnDamageParticles(player, damage, headShot, config);
+                TrySpawnDamageParticles(attacker, victim, damage, headShot, config, impactPos);
             }
 
             if (playerData.SoundEnabled && headShot && !string.IsNullOrEmpty(playerData.Sound_HeadShot))
             {
-                player.ExecuteClientCommand("play " + playerData.Sound_HeadShot);
+                attacker.ExecuteClientCommand("play " + playerData.Sound_HeadShot);
             }
             else if (playerData.SoundEnabled && !headShot && !string.IsNullOrEmpty(playerData.Sound_BodyShot))
             {
-                player.ExecuteClientCommand("play " + playerData.Sound_BodyShot);
+                attacker.ExecuteClientCommand("play " + playerData.Sound_BodyShot);
             }
         }
         catch (Exception ex)
@@ -228,7 +229,7 @@ public class Helper
         }
     }
 
-    private static void TrySpawnHitParticle(CCSPlayerController player, bool headShot, Config config)
+    private static void TrySpawnHitParticle(CCSPlayerController attacker, CCSPlayerController victim, bool headShot, Config config, Vector? impactPos)
     {
         string path = headShot ? config.HitMarkHeadshotParticle : config.HitMarkBodyshotParticle;
         if (string.IsNullOrWhiteSpace(path))
@@ -237,10 +238,17 @@ public class Helper
         }
 
         float lifetime = headShot ? config.HitMarkHeadshotDuration : config.HitMarkBodyshotDuration;
-        SpawnCrosshairParticle(player, path, config.HitMarkDistance, lifetime, config.HitMarkInput);
+        if (impactPos != null)
+        {
+            SpawnParticleAtPosition(attacker, impactPos!, path, lifetime, config.HitMarkInput, attacker.PlayerPawn?.Value?.EyeAngles);
+        }
+        else
+        {
+            SpawnCrosshairParticle(attacker, path, config.HitMarkDistance, lifetime, config.HitMarkInput);
+        }
     }
 
-    private static void TrySpawnDamageParticles(CCSPlayerController player, int damage, bool headShot, Config config)
+    private static void TrySpawnDamageParticles(CCSPlayerController attacker, CCSPlayerController victim, int damage, bool headShot, Config config, Vector? impactPos)
     {
         var digits = config.DamageDigitParticles;
         if (digits == null || digits.Count < 10)
@@ -258,7 +266,7 @@ public class Helper
 
         float lifetime = headShot ? config.DamageHeadshotDuration : config.DamageBodyshotDuration;
         DebugMessage($"Spawning damage digits '{damageText}' (headshot={headShot}).");
-        SpawnDamageDigitParticles(player, damageText, digits, config, lifetime);
+        SpawnDamageDigitParticles(attacker, victim, damageText, digits, config, lifetime, impactPos);
     }
 
     public static bool SpawnCrosshairParticle(CCSPlayerController player, string effectName, float distance, float lifetime, string? acceptInput)
@@ -266,7 +274,7 @@ public class Helper
         return SpawnParticleAtCrosshair(player, effectName, distance, lifetime, acceptInput, null);
     }
 
-    private static void SpawnDamageDigitParticles(CCSPlayerController player, string damageText, List<string> digits, Config config, float lifetime)
+    private static void SpawnDamageDigitParticles(CCSPlayerController attacker, CCSPlayerController victim, string damageText, List<string> digits, Config config, float lifetime, Vector? impactPos)
     {
         int count = damageText.Length;
         if (count <= 0)
@@ -274,8 +282,24 @@ public class Helper
             return;
         }
 
+        var attackerPawn = attacker.PlayerPawn?.Value;
+        if (attackerPawn == null || !attackerPawn.IsValid)
+        {
+            return;
+        }
+
+        var basePos = impactPos ?? GetCrosshairPosition(attackerPawn, config.HitMarkDistance);
+        if (basePos == null)
+        {
+            return;
+        }
+
+        Vector right = RightFromYaw(attackerPawn.EyeAngles);
+
         float spacing = MathF.Max(0f, config.DamageSpacing);
-        float baseOffset = -((count - 1) * spacing) * 0.5f;
+        float totalWidth = (count - 1) * spacing;
+        Vector startPos = Subtract(basePos, Multiply(right, totalWidth * 0.5f));
+
         for (int i = 0; i < count; i++)
         {
             int digitIndex = damageText[i] - '0';
@@ -292,9 +316,10 @@ public class Helper
                 continue;
             }
 
-            float offsetX = baseOffset + (i * spacing) + config.DamageOffsetX;
-            float offsetY = config.DamageOffsetY;
-            SpawnParticleAtCrosshair(player, path, config.DamageDistance, lifetime, config.DamageInput, new Vector(offsetX, offsetY, 0f));
+            Vector offset = Multiply(right, (i * spacing) + config.DamageOffsetX);
+            Vector digitPos = Add(startPos, offset);
+            digitPos = new Vector(digitPos.X, digitPos.Y, digitPos.Z + config.DamageHeight + config.DamageOffsetY);
+            SpawnParticleAtPosition(attacker, digitPos, path, lifetime, config.DamageInput, attackerPawn.EyeAngles);
         }
     }
 
@@ -357,36 +382,46 @@ public class Helper
                 );
             }
 
-            var particle = Utilities.CreateEntityByName<CParticleSystem>("info_particle_system");
-            if (particle == null || !particle.IsValid)
-            {
-                return;
-            }
-
-            particle.EffectName = effectName;
-            particle.DispatchSpawn();
-            particle.Teleport(spawnPos, framePawn.EyeAngles, new Vector());
-
-            if (!string.IsNullOrWhiteSpace(acceptInput) &&
-                !acceptInput.Equals("none", StringComparison.OrdinalIgnoreCase))
-            {
-                particle.AcceptInput(acceptInput);
-            }
-
-            float safeLifetime = MathF.Max(0.05f, lifetime);
-            plugin.AddTimer(safeLifetime, () =>
-            {
-                if (particle.IsValid)
-                {
-                    particle.Remove();
-                }
-                plugin.ReleaseParticleOwner(particle.Index);
-            });
-
-            plugin.RegisterParticleOwner(particle.Index, player.Slot);
+            SpawnParticleAtPosition(player, spawnPos, effectName, lifetime, acceptInput, framePawn.EyeAngles);
         });
 
         return true;
+    }
+
+    private static void SpawnParticleAtPosition(CCSPlayerController player, Vector position, string effectName, float lifetime, string? acceptInput, QAngle? angles)
+    {
+        var plugin = HitMarkPlugin.Instance;
+        if (plugin == null)
+        {
+            return;
+        }
+
+        if (!plugin.CanSpawnParticle(player.Slot, HitMarkPlugin.Instance.Config.MaxActiveParticlesPerPlayer))
+        {
+            DebugMessage($"Particle cap reached for slot {player.Slot}.", false);
+            return;
+        }
+
+        var particle = Utilities.CreateEntityByName<CParticleSystem>("info_particle_system");
+        if (particle == null || !particle.IsValid)
+        {
+            return;
+        }
+
+        particle.EffectName = effectName;
+        particle.DispatchSpawn();
+        particle.Teleport(position, angles, new Vector());
+
+        if (!string.IsNullOrWhiteSpace(acceptInput) &&
+            !acceptInput.Equals("none", StringComparison.OrdinalIgnoreCase))
+        {
+            particle.AcceptInput(acceptInput);
+        }
+
+        float safeLifetime = MathF.Max(0.05f, lifetime);
+        particle.AddEntityIOEvent("Kill", null, null, "", safeLifetime);
+
+        plugin.RegisterParticleOwner(particle.Index, player.Slot);
     }
 
     private static Vector? GetCrosshairPosition(CCSPlayerPawn pawn, float distance)
@@ -430,6 +465,41 @@ public class Helper
     {
         float yawRad = angles.Y * (MathF.PI / 180f);
         return new Vector(-MathF.Sin(yawRad), MathF.Cos(yawRad), 0f);
+    }
+
+    private static Vector Add(Vector a, Vector b)
+    {
+        return new Vector(a.X + b.X, a.Y + b.Y, a.Z + b.Z);
+    }
+
+    private static Vector Subtract(Vector a, Vector b)
+    {
+        return new Vector(a.X - b.X, a.Y - b.Y, a.Z - b.Z);
+    }
+
+    private static Vector Multiply(Vector v, float scalar)
+    {
+        return new Vector(v.X * scalar, v.Y * scalar, v.Z * scalar);
+    }
+
+    private static Vector Cross(Vector a, Vector b)
+    {
+        return new Vector(
+            a.Y * b.Z - a.Z * b.Y,
+            a.Z * b.X - a.X * b.Z,
+            a.X * b.Y - a.Y * b.X
+        );
+    }
+
+    private static Vector Normalize(Vector v)
+    {
+        float length = MathF.Sqrt(v.X * v.X + v.Y * v.Y + v.Z * v.Z);
+        if (length <= 0.0001f)
+        {
+            return new Vector(0f, 0f, 0f);
+        }
+
+        return new Vector(v.X / length, v.Y / length, v.Z / length);
     }
 
     private static string? ResolveSoundForPlayer(List<string> entries, CCSPlayerController player)

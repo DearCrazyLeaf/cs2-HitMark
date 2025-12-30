@@ -10,9 +10,6 @@ namespace CS2_HitMark.Models
         [JsonPropertyName("version")]
         public int Version { get; set; } = 1;
 
-        [JsonPropertyName("disable_on_warmup")]
-        public bool DisableOnWarmup { get; set; } = false;
-
         [JsonPropertyName("mute_default_headshot_bodyshot")]
         public bool MuteDefaultHeadshotBodyshot { get; set; } = true;
 
@@ -44,28 +41,28 @@ namespace CS2_HitMark.Models
         public List<string> DamageDigitParticles { get; set; } =
         [
             "particles/exg/hitmarker/0.vpcf",
-            "particles/exg/hitmarker/1.vpcf",
-            "particles/exg/hitmarker/2.vpcf",
-            "particles/exg/hitmarker/3.vpcf",
-            "particles/exg/hitmarker/4.vpcf",
-            "particles/exg/hitmarker/5.vpcf",
-            "particles/exg/hitmarker/6.vpcf",
-            "particles/exg/hitmarker/7.vpcf",
-            "particles/exg/hitmarker/8.vpcf",
-            "particles/exg/hitmarker/9.vpcf"
+            "particles/exg/hitmarker/01.vpcf",
+            "particles/exg/hitmarker/02.vpcf",
+            "particles/exg/hitmarker/03.vpcf",
+            "particles/exg/hitmarker/04.vpcf",
+            "particles/exg/hitmarker/05.vpcf",
+            "particles/exg/hitmarker/06.vpcf",
+            "particles/exg/hitmarker/07.vpcf",
+            "particles/exg/hitmarker/08.vpcf",
+            "particles/exg/hitmarker/09.vpcf"
         ];
 
         [JsonPropertyName("damage_headshot_duration")]
-        public float DamageHeadshotDuration { get; set; } = 0.2f;
+        public float DamageHeadshotDuration { get; set; } = 0.4f;
 
         [JsonPropertyName("damage_bodyshot_duration")]
-        public float DamageBodyshotDuration { get; set; } = 0.2f;
+        public float DamageBodyshotDuration { get; set; } = 0.4f;
 
-        [JsonPropertyName("damage_distance")]
-        public float DamageDistance { get; set; } = 60f;
+        [JsonPropertyName("damage_height")]
+        public float DamageHeight { get; set; } = 5f;
 
         [JsonPropertyName("damage_spacing")]
-        public float DamageSpacing { get; set; } = 6f;
+        public float DamageSpacing { get; set; } = 13f;
 
         [JsonPropertyName("damage_offset_x")]
         public float DamageOffsetX { get; set; } = 0f;
@@ -99,10 +96,10 @@ namespace CS2_HitMark.Models
             if (HitMarkHeadshotDuration <= 0f || HitMarkHeadshotDuration > 10f) HitMarkHeadshotDuration = 0.2f;
             if (HitMarkBodyshotDuration <= 0f || HitMarkBodyshotDuration > 10f) HitMarkBodyshotDuration = 0.2f;
             if (HitMarkDistance < 1f || HitMarkDistance > 200f) HitMarkDistance = 60f;
-            if (DamageHeadshotDuration <= 0f || DamageHeadshotDuration > 10f) DamageHeadshotDuration = 0.2f;
-            if (DamageBodyshotDuration <= 0f || DamageBodyshotDuration > 10f) DamageBodyshotDuration = 0.2f;
-            if (DamageDistance < 1f || DamageDistance > 200f) DamageDistance = 60f;
-            if (DamageSpacing < 0f || DamageSpacing > 50f) DamageSpacing = 6f;
+            if (DamageHeadshotDuration <= 0f || DamageHeadshotDuration > 10f) DamageHeadshotDuration = 0.4f;
+            if (DamageBodyshotDuration <= 0f || DamageBodyshotDuration > 10f) DamageBodyshotDuration = 0.4f;
+            if (DamageHeight < 1f || DamageHeight > 200f) DamageHeight = 5f;
+            if (DamageSpacing < 0f || DamageSpacing > 50f) DamageSpacing = 13f;
             if (DamageOffsetX < -50f || DamageOffsetX > 50f) DamageOffsetX = 0f;
             if (DamageOffsetY < -50f || DamageOffsetY > 50f) DamageOffsetY = 0f;
             if (MaxActiveParticlesPerPlayer < 0 || MaxActiveParticlesPerPlayer > 200) MaxActiveParticlesPerPlayer = 30;

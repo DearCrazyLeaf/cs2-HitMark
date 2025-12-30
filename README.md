@@ -35,6 +35,9 @@
 3. Start the server once to generate config
 4. Edit config and restart the server
 
+> [!IMPORTANT]
+> Particle resources are not bundled with this plugin. You must upload the particle assets to your own Workshop addon and precache them yourself.
+
 ## Configuration
 
 Config path:
@@ -43,7 +46,6 @@ Config path:
 ```json
 {
   "version": 1,                      // Don't change this
-  "disable_on_warmup": false,        // Disable hitmark during warmup
   "mute_default_headshot_bodyshot": true, // Mute default hit sounds if custom sounds exist
 
   "hitmark_enabled": true,           // Enable hitmark particles
@@ -69,7 +71,7 @@ Config path:
   ],
   "damage_headshot_duration": 0.3,   // Headshot digits lifetime (sec)
   "damage_bodyshot_duration": 0.25,  // Bodyshot digits lifetime (sec)
-  "damage_distance": 60,             // Distance in front of view (world units)
+  "damage_height": 5,               // Height above victim (world units)
   "damage_spacing": 6,               // Digit spacing (world units)
   "damage_offset_x": 0,              // Horizontal offset (world units)
   "damage_offset_y": 0,              // Vertical offset (world units)
@@ -146,6 +148,9 @@ Issues and pull requests are welcome
 3. 启动服务器生成配置文件
 4. 修改配置后重启服务器
 
+> [!IMPORTANT]
+> 本插件不包含任何粒子资源，请自行将粒子资源上传至创意工坊并完成预载。
+
 ## 配置
 
 配置路径：
@@ -154,7 +159,6 @@ Issues and pull requests are welcome
 ```json
 {
   "version": 1,                      // 请勿修改
-  "disable_on_warmup": false,        // 热身期间禁用
   "mute_default_headshot_bodyshot": true, // 有自定义音效时静音默认命中音效
 
   "hitmark_enabled": true,           // 启用 HitMark 粒子
@@ -180,7 +184,7 @@ Issues and pull requests are welcome
   ],
   "damage_headshot_duration": 0.3,   // 爆头数字时长(秒)
   "damage_bodyshot_duration": 0.25,  // 身体数字时长(秒)
-  "damage_distance": 60,             // 准星前方距离(世界单位)
+  "damage_height": 5,               // 受击者上方高度(世界单位)
   "damage_spacing": 6,               // 数字间距(世界单位)
   "damage_offset_x": 0,              // 横向偏移
   "damage_offset_y": 0,              // 纵向偏移
