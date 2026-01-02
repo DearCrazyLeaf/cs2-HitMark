@@ -26,9 +26,13 @@ public class HitMarkPlugin : BasePlugin, IPluginConfig<Config>
     private readonly Dictionary<uint, int> _particleOwnerByIndex = new();
     private readonly Dictionary<int, int> _activeParticleCountBySlot = new();
     private readonly Dictionary<int, ImpactInfo> _lastImpactBySlot = new();
+    private readonly Dictionary<int, float> _lastHitmarkTimeBySlot = new();
     private const int MinParticleLifetimeMs = 50;
     private const float ImpactTimeoutSec = 0.2f;
+    private const float HitmarkCooldownSec = 0.05f;
     private readonly IStringLocalizer<HitMarkPlugin> _localizer;
+    private bool _muteDefaultHeadshot;
+    private bool _muteDefaultBodyshot;
     
     public Config Config { get; set; } = new();
 
@@ -42,6 +46,7 @@ public class HitMarkPlugin : BasePlugin, IPluginConfig<Config>
     {
         config.Validate();
         Config = config;
+        UpdateMuteFlags(config);
     }
 
     public override void Load(bool hotReload)
@@ -57,24 +62,30 @@ public class HitMarkPlugin : BasePlugin, IPluginConfig<Config>
         AddCommand("css_hitsound", "Toggle hitmark sounds on/off for yourself.", OnToggleSoundCommand);
 
 
-        if (Config.MuteDefaultHeadshotBodyshot)
+        HookUserMessage(208, um =>
         {
-            HookUserMessage(208, um =>
+            if (!Config.MuteDefaultHeadshotBodyshot)
             {
-                var soundevent = um.ReadUInt("soundevent_hash");
-                uint HeadShotHit_ClientSide = 2831007164;
-                uint Player_Got_Damage_ClientSide = 708038349;
-
-                bool HH = g_Main.Player_Data.Any(playerdata => !string.IsNullOrEmpty(playerdata.Value.Sound_HeadShot) && soundevent == HeadShotHit_ClientSide) ? true : false;
-                bool BH = g_Main.Player_Data.Any(playerdata => !string.IsNullOrEmpty(playerdata.Value.Sound_BodyShot) && soundevent == Player_Got_Damage_ClientSide) ? true : false;
-                if (HH || BH)
-                {
-                    return HookResult.Stop;
-                }
                 return HookResult.Continue;
+            }
 
-            }, HookMode.Pre);
-        }
+            if (!_muteDefaultHeadshot && !_muteDefaultBodyshot)
+            {
+                return HookResult.Continue;
+            }
+
+            var soundevent = um.ReadUInt("soundevent_hash");
+            uint HeadShotHit_ClientSide = 2831007164;
+            uint Player_Got_Damage_ClientSide = 708038349;
+
+            if ((_muteDefaultHeadshot && soundevent == HeadShotHit_ClientSide) ||
+                (_muteDefaultBodyshot && soundevent == Player_Got_Damage_ClientSide))
+            {
+                return HookResult.Stop;
+            }
+
+            return HookResult.Continue;
+        }, HookMode.Pre);
     }
 
     public HookResult OnEventRoundStart(EventRoundStart @event, GameEventInfo info)
@@ -83,12 +94,6 @@ public class HitMarkPlugin : BasePlugin, IPluginConfig<Config>
 
         Helper.ClearVariables();
 
-        foreach(var players in Helper.GetPlayersController())
-        {
-            if(players == null || !players.IsValid)continue;
-
-            Helper.InitializePlayerData(players);
-        }
         return HookResult.Continue;
     }
 
@@ -124,6 +129,11 @@ public class HitMarkPlugin : BasePlugin, IPluginConfig<Config>
             return HookResult.Continue;
         }
 
+        if (!ShouldAllowHitmark(attacker.Slot))
+        {
+            return HookResult.Continue;
+        }
+
         bool isHeadShot = Hitgroup == 1;
         Vector? impactPos = TryGetRecentImpact(attacker.Slot, out var impact) ? impact : null;
         Helper.StartHitMark(attacker, victim, isHeadShot, totalDamage, impactPos);
@@ -139,6 +149,8 @@ public class HitMarkPlugin : BasePlugin, IPluginConfig<Config>
         if (player == null || !player.IsValid)return HookResult.Continue;
 
         if (g_Main.Player_Data.ContainsKey(player))g_Main.Player_Data.Remove(player);
+        _lastImpactBySlot.Remove(player.Slot);
+        _lastHitmarkTimeBySlot.Remove(player.Slot);
 
         return HookResult.Continue;
     }
@@ -149,6 +161,7 @@ public class HitMarkPlugin : BasePlugin, IPluginConfig<Config>
         _particleOwnerByIndex.Clear();
         _activeParticleCountBySlot.Clear();
         _lastImpactBySlot.Clear();
+        _lastHitmarkTimeBySlot.Clear();
     }
 
     public override void Unload(bool hotReload)
@@ -157,6 +170,7 @@ public class HitMarkPlugin : BasePlugin, IPluginConfig<Config>
         _particleOwnerByIndex.Clear();
         _activeParticleCountBySlot.Clear();
         _lastImpactBySlot.Clear();
+        _lastHitmarkTimeBySlot.Clear();
     }
 
     private void OnToggleHitMarkCommand(CCSPlayerController? player, CommandInfo info)
@@ -276,6 +290,29 @@ public class HitMarkPlugin : BasePlugin, IPluginConfig<Config>
 
         position = new Vector(0f, 0f, 0f);
         return false;
+    }
+
+    private bool ShouldAllowHitmark(int slot)
+    {
+        float now = (float)Server.CurrentTime;
+        if (_lastHitmarkTimeBySlot.TryGetValue(slot, out float last))
+        {
+            if (now - last < HitmarkCooldownSec)
+            {
+                return false;
+            }
+        }
+
+        _lastHitmarkTimeBySlot[slot] = now;
+        return true;
+    }
+
+    private void UpdateMuteFlags(Config config)
+    {
+        bool hasHeadSound = config.HeadshotSounds.Any(sound => !string.IsNullOrWhiteSpace(sound));
+        bool hasBodySound = config.BodyshotSounds.Any(sound => !string.IsNullOrWhiteSpace(sound));
+        _muteDefaultHeadshot = config.MuteDefaultHeadshotBodyshot && hasHeadSound;
+        _muteDefaultBodyshot = config.MuteDefaultHeadshotBodyshot && hasBodySound;
     }
 
     private readonly struct ImpactInfo
