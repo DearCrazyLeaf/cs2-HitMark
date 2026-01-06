@@ -1,3 +1,17 @@
+<p align="center">
+  <a href="https://github.com/roflmuffin/CounterStrikeSharp">
+    <img src="https://docs.cssharp.dev/images/cssharp.svg" width="60" height="60" style="vertical-align: middle; margin-right: 10px;" />
+  </a>
+</p>
+
+<h3 align="center">
+  <span style="vertical-align: middle; font-weight: 600;">
+    <code style="vertical-align: middle;">CounterStrikeSharp</code>
+  </span>
+</h3>
+
+---
+
 # cs2-HitMark
 
 [![中文版介绍](https://img.shields.io/badge/跳转到中文版-中文介绍-red)](#中文版介绍)
@@ -49,7 +63,6 @@ Config path:
 {
   "version": 1,                      // Don't change this
   "mute_default_headshot_bodyshot": true, // Mute default hit sounds if custom sounds exist
-
   "hitmark_enabled": true,           // Enable hitmark particles
   "hitmark_headshot_particle": "particles/exg/exg_hitmarker_3d_head.vpcf",
   "hitmark_bodyshot_particle": "particles/exg/exg_hitmarker2.vpcf",
@@ -57,7 +70,6 @@ Config path:
   "hitmark_bodyshot_duration": 0.25, // Bodyshot particle lifetime (sec)
   "hitmark_distance": 60,            // Distance in front of view (world units)
   "hitmark_input": "Start",          // Optional input, use empty or NONE to skip
-
   "damage_digits_enabled": true,     // Enable particle damage digits
   "damage_digit_particles": [
     "particles/exg/hitmarker/0.vpcf",
@@ -78,23 +90,33 @@ Config path:
   "damage_offset_x": 0,              // Horizontal offset (world units)
   "damage_offset_y": 0,              // Vertical offset (world units)
   "damage_input": "Start",           // Optional input, use empty or NONE to skip
-
   "max_active_particles_per_player": 30, // 0 = unlimited
-
   "headshot_sounds": [
     "sounds/goldkingz/hitmark/headshot.vsnd"
   ],
   "bodyshot_sounds": [
     "sounds/goldkingz/hitmark/bodyhit.vsnd"
   ],
-
-  "debug": false
+  "debug": false,
+  "mysql": {
+    "enabled": false,
+    "host": "127.0.0.1",
+    "port": 3306,
+    "database": "",
+    "username": "",
+    "password": "",
+    "table": "cs2_hitmark_settings"
+  }
 }
 ```
 
 > [!NOTE]
 > Particle paths must be precached by another plugin or system
 > This plugin does not precache resources
+
+## MySQL Persistence
+
+Enable the `mysql` section to persist per-player hitmark/sound toggles across sessions.
 
 ## Commands
 
@@ -164,7 +186,6 @@ Issues and pull requests are welcome
 {
   "version": 1,                      // 请勿修改
   "mute_default_headshot_bodyshot": true, // 有自定义音效时静音默认命中音效
-
   "hitmark_enabled": true,           // 启用 HitMark 粒子
   "hitmark_headshot_particle": "particles/exg/exg_hitmarker_3d_head.vpcf",
   "hitmark_bodyshot_particle": "particles/exg/exg_hitmarker2.vpcf",
@@ -172,7 +193,6 @@ Issues and pull requests are welcome
   "hitmark_bodyshot_duration": 0.25, // 身体时长(秒)
   "hitmark_distance": 60,            // 准星前方距离(世界单位)
   "hitmark_input": "Start",          // 可选输入，留空或 NONE 跳过
-
   "damage_digits_enabled": true,     // 启用数字粒子
   "damage_digit_particles": [
     "particles/exg/hitmarker/0.vpcf",
@@ -193,22 +213,32 @@ Issues and pull requests are welcome
   "damage_offset_x": 0,              // 横向偏移
   "damage_offset_y": 0,              // 纵向偏移
   "damage_input": "Start",           // 可选输入，留空或 NONE 跳过
-
   "max_active_particles_per_player": 30, // 0 = 不限制
-
   "headshot_sounds": [
     "sounds/goldkingz/hitmark/headshot.vsnd"
   ],
   "bodyshot_sounds": [
     "sounds/goldkingz/hitmark/bodyhit.vsnd"
   ],
-
-  "debug": false
+  "debug": false,
+  "mysql": {
+    "enabled": false,
+    "host": "127.0.0.1",
+    "port": 3306,
+    "database": "",
+    "username": "",
+    "password": "",
+    "table": "cs2_hitmark_settings"
+  }
 }
 ```
 
 > [!NOTE]
 > 粒子资源需要由其他插件或系统进行预载，本插件不负责预载
+
+## MySQL 数据库配置
+
+将 `mysql` 设置为 `true` 来使用数据库持久化储存玩家设置
 
 ## 命令
 

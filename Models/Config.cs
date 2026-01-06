@@ -91,6 +91,9 @@ namespace CS2_HitMark.Models
         [JsonPropertyName("debug")]
         public bool Debug { get; set; } = false;
 
+        [JsonPropertyName("mysql")]
+        public MySqlSettings MySql { get; set; } = new();
+
         public void Validate()
         {
             if (HitMarkHeadshotDuration <= 0f || HitMarkHeadshotDuration > 10f) HitMarkHeadshotDuration = 0.2f;
@@ -117,6 +120,32 @@ namespace CS2_HitMark.Models
             {
                 DamageDigitParticles = DamageDigitParticles.GetRange(0, 10);
             }
+
+            MySql ??= new MySqlSettings();
         }
+        public class MySqlSettings
+        {
+            [JsonPropertyName("enabled")]
+            public bool Enabled { get; set; } = false;
+
+            [JsonPropertyName("host")]
+            public string Host { get; set; } = "127.0.0.1";
+
+            [JsonPropertyName("port")]
+            public int Port { get; set; } = 3306;
+
+            [JsonPropertyName("database")]
+            public string Database { get; set; } = "";
+
+            [JsonPropertyName("username")]
+            public string Username { get; set; } = "";
+
+            [JsonPropertyName("password")]
+            public string Password { get; set; } = "";
+
+            [JsonPropertyName("table")]
+            public string Table { get; set; } = "cs2_hitmark_settings";
+        }
+
     }
 }

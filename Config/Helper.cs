@@ -138,7 +138,7 @@ public class Helper
 
         Console.ForegroundColor = ConsoleColor.Magenta;
         string Prefix = $"[HitMark]: ";
-        Console.WriteLine(prefix ? Prefix : "" + message);
+        Console.WriteLine(prefix ? Prefix + message : message);
 
         Console.ResetColor();
     }
@@ -168,8 +168,8 @@ public class Helper
 
         if (player == null || !player.IsValid) return;
 
-        string? headSound = ResolveSoundForPlayer(config.HeadshotSounds, player);
-        string? bodySound = ResolveSoundForPlayer(config.BodyshotSounds, player);
+        string? headSound = ResolveSoundPath(config.HeadshotSounds);
+        string? bodySound = ResolveSoundPath(config.BodyshotSounds);
 
         try
         {
@@ -178,6 +178,8 @@ public class Helper
                 headSound ?? string.Empty,
                 bodySound ?? string.Empty
             );
+
+            HitMarkPlugin.Instance.QueueLoadSettings(player);
         }
         catch (Exception ex)
         {
@@ -214,13 +216,33 @@ public class Helper
                 TrySpawnDamageParticles(attacker, victim, damage, headShot, config, impactPos);
             }
 
-            if (playerData.SoundEnabled && headShot && !string.IsNullOrEmpty(playerData.Sound_HeadShot))
+            if (!playerData.SoundEnabled)
             {
-                attacker.ExecuteClientCommand("play " + playerData.Sound_HeadShot);
+                DebugMessage($"HitSound skipped: SoundEnabled=false for slot {attacker.Slot}.");
             }
-            else if (playerData.SoundEnabled && !headShot && !string.IsNullOrEmpty(playerData.Sound_BodyShot))
+            else if (headShot)
             {
-                attacker.ExecuteClientCommand("play " + playerData.Sound_BodyShot);
+                if (!string.IsNullOrWhiteSpace(playerData.Sound_HeadShot))
+                {
+                    DebugMessage($"HitSound headshot: play {playerData.Sound_HeadShot} (slot {attacker.Slot}).");
+                    attacker.ExecuteClientCommand($"play {playerData.Sound_HeadShot}");
+                }
+                else
+                {
+                    DebugMessage($"HitSound headshot missing path (slot {attacker.Slot}).");
+                }
+            }
+            else
+            {
+                if (!string.IsNullOrWhiteSpace(playerData.Sound_BodyShot))
+                {
+                    DebugMessage($"HitSound bodyshot: play {playerData.Sound_BodyShot} (slot {attacker.Slot}).");
+                    attacker.ExecuteClientCommand($"play {playerData.Sound_BodyShot}");
+                }
+                else
+                {
+                    DebugMessage($"HitSound bodyshot missing path (slot {attacker.Slot}).");
+                }
             }
         }
         catch (Exception ex)
@@ -501,16 +523,27 @@ public class Helper
 
         return new Vector(v.X / length, v.Y / length, v.Z / length);
     }
-
-    private static string? ResolveSoundForPlayer(List<string> entries, CCSPlayerController player)
+    private static string? ResolveSoundPath(List<string>? entries)
     {
+        if (entries == null)
+        {
+            return null;
+        }
+
         foreach (var entry in entries)
         {
             if (string.IsNullOrWhiteSpace(entry)) continue;
 
-            return entry.Trim();
+            string trimmed = entry.Trim().Trim('"');
+            if (trimmed.Equals("none", StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            return string.IsNullOrWhiteSpace(trimmed) ? null : trimmed;
         }
 
         return null;
     }
+
 }

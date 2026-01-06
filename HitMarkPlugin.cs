@@ -11,6 +11,7 @@ using CounterStrikeSharp.API.Modules.Utils;
 using CounterStrikeSharp.API.Modules.Timers;
 using System.Collections.Generic;
 using Microsoft.Extensions.Localization;
+using System.Threading.Tasks;
 
 namespace CS2_HitMark;
 
@@ -33,6 +34,7 @@ public class HitMarkPlugin : BasePlugin, IPluginConfig<Config>
     private readonly IStringLocalizer<HitMarkPlugin> _localizer;
     private bool _muteDefaultHeadshot;
     private bool _muteDefaultBodyshot;
+    private PlayerSettingsStore? _settingsStore;
     
     public Config Config { get; set; } = new();
 
@@ -47,11 +49,13 @@ public class HitMarkPlugin : BasePlugin, IPluginConfig<Config>
         config.Validate();
         Config = config;
         UpdateMuteFlags(config);
+        InitializeSettingsStore(config);
     }
 
     public override void Load(bool hotReload)
     {
         RegisterEventHandler<EventPlayerHurt>(OnEventPlayerHurt);
+        RegisterEventHandler<EventPlayerConnectFull>(OnPlayerConnectFull);
         RegisterEventHandler<EventBulletImpact>(OnEventBulletImpact);
         RegisterEventHandler<EventRoundStart>(OnEventRoundStart);
         RegisterEventHandler<EventPlayerDisconnect>(OnPlayerDisconnect);
@@ -91,8 +95,6 @@ public class HitMarkPlugin : BasePlugin, IPluginConfig<Config>
     public HookResult OnEventRoundStart(EventRoundStart @event, GameEventInfo info)
     {
         if (@event == null) return HookResult.Continue;
-
-        Helper.ClearVariables();
 
         return HookResult.Continue;
     }
@@ -157,7 +159,6 @@ public class HitMarkPlugin : BasePlugin, IPluginConfig<Config>
 
     private void OnMapEnd()
     {
-        Helper.ClearVariables();
         _particleOwnerByIndex.Clear();
         _activeParticleCountBySlot.Clear();
         _lastImpactBySlot.Clear();
@@ -166,7 +167,6 @@ public class HitMarkPlugin : BasePlugin, IPluginConfig<Config>
 
     public override void Unload(bool hotReload)
     {
-        Helper.ClearVariables();
         _particleOwnerByIndex.Clear();
         _activeParticleCountBySlot.Clear();
         _lastImpactBySlot.Clear();
@@ -193,11 +193,13 @@ public class HitMarkPlugin : BasePlugin, IPluginConfig<Config>
         }
 
         playerData.HitMarkEnabled = !playerData.HitMarkEnabled;
+        playerData.SettingsDirty = true;
         info.ReplyToCommand(_localizer[
             playerData.HitMarkEnabled
                 ? "hitmark.command.hitmark_on"
                 : "hitmark.command.hitmark_off"
         ]);
+        QueueSaveSettings(player, playerData);
     }
 
     private void OnToggleSoundCommand(CCSPlayerController? player, CommandInfo info)
@@ -220,11 +222,13 @@ public class HitMarkPlugin : BasePlugin, IPluginConfig<Config>
         }
 
         playerData.SoundEnabled = !playerData.SoundEnabled;
+        playerData.SettingsDirty = true;
         info.ReplyToCommand(_localizer[
             playerData.SoundEnabled
                 ? "hitmark.command.sound_on"
                 : "hitmark.command.sound_off"
         ]);
+        QueueSaveSettings(player, playerData);
     }
 
     private void OnEntityDeleted(CEntityInstance entity)
@@ -313,6 +317,151 @@ public class HitMarkPlugin : BasePlugin, IPluginConfig<Config>
         bool hasBodySound = config.BodyshotSounds.Any(sound => !string.IsNullOrWhiteSpace(sound));
         _muteDefaultHeadshot = config.MuteDefaultHeadshotBodyshot && hasHeadSound;
         _muteDefaultBodyshot = config.MuteDefaultHeadshotBodyshot && hasBodySound;
+    }
+
+    private void InitializeSettingsStore(Config config)
+    {
+        _settingsStore = null;
+        if (config.MySql == null || !config.MySql.Enabled)
+        {
+            return;
+        }
+
+        try
+        {
+            _settingsStore = new PlayerSettingsStore(config.MySql);
+            _ = _settingsStore.InitializeAsync();
+        }
+        catch (Exception ex)
+        {
+            Helper.DebugMessage($"MySQL initialization failed: {ex.Message}");
+            _settingsStore = null;
+        }
+    }
+
+    private HookResult OnPlayerConnectFull(EventPlayerConnectFull @event, GameEventInfo info)
+    {
+        if (@event == null) return HookResult.Continue;
+
+        var player = @event.Userid;
+        if (player == null || !player.IsValid || player.IsBot)
+        {
+            return HookResult.Continue;
+        }
+
+        EnsurePlayerData(player);
+        return HookResult.Continue;
+    }
+
+    private void EnsurePlayerData(CCSPlayerController player)
+    {
+        if (!g_Main.Player_Data.ContainsKey(player))
+        {
+            Helper.InitializePlayerData(player);
+        }
+        QueueLoadSettings(player);
+    }
+
+    public void QueueLoadSettings(CCSPlayerController player)
+    {
+        if (_settingsStore == null || player == null || !player.IsValid)
+        {
+            return;
+        }
+
+        if (!g_Main.Player_Data.TryGetValue(player, out var playerData))
+        {
+            return;
+        }
+
+        if (playerData.SettingsLoaded || playerData.SettingsLoading)
+        {
+            return;
+        }
+
+        playerData.SettingsLoading = true;
+
+        ulong steamId = player.SteamID;
+        if (steamId == 0)
+        {
+            return;
+        }
+
+        playerData.SettingsLoaded = true;
+        _ = LoadPlayerSettingsAsync(player, playerData, steamId);
+    }
+
+    private async Task LoadPlayerSettingsAsync(CCSPlayerController player, Globals.PlayerDataClass playerData, ulong steamId)
+    {
+        var store = _settingsStore;
+        if (store == null)
+        {
+            return;
+        }
+
+        try
+        {
+            var settings = await store.GetAsync(steamId);
+            if (settings == null)
+            {
+                Server.NextFrame(() =>
+                {
+                    if (!g_Main.Player_Data.TryGetValue(player, out var currentData))
+                    {
+                        return;
+                    }
+
+                    currentData.SettingsLoaded = true;
+                    currentData.SettingsLoading = false;
+                });
+                return;
+            }
+
+            Server.NextFrame(() =>
+            {
+                if (player == null || !player.IsValid)
+                {
+                    return;
+                }
+
+                if (!g_Main.Player_Data.TryGetValue(player, out var currentData))
+                {
+                    return;
+                }
+
+                if (settings != null && !currentData.SettingsDirty)
+                {
+                    currentData.HitMarkEnabled = settings.Value.HitMarkEnabled;
+                    currentData.SoundEnabled = settings.Value.SoundEnabled;
+                }
+
+                currentData.SettingsLoaded = true;
+                currentData.SettingsLoading = false;
+            });
+        }
+        catch (Exception ex)
+        {
+            Helper.DebugMessage($"MySQL load failed: {ex.Message}");
+            playerData.SettingsLoaded = false;
+            playerData.SettingsLoading = false;
+        }
+    }
+
+    private void QueueSaveSettings(CCSPlayerController player, Globals.PlayerDataClass playerData)
+    {
+        if (_settingsStore == null || player == null || !player.IsValid)
+        {
+            return;
+        }
+
+        ulong steamId = player.SteamID;
+        if (steamId == 0)
+        {
+            return;
+        }
+
+        playerData.SettingsDirty = true;
+        _ = _settingsStore.UpsertAsync(steamId, playerData.HitMarkEnabled, playerData.SoundEnabled);
     }
 
     private readonly struct ImpactInfo
