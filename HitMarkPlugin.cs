@@ -19,7 +19,7 @@ namespace CS2_HitMark;
 public class HitMarkPlugin : BasePlugin, IPluginConfig<Config>
 {
     public override string ModuleName => "CS2 HitMark";
-    public override string ModuleVersion => "1.0.0";
+    public override string ModuleVersion => "1.5.0";
     public override string ModuleAuthor => "DearCrazyLeaf";
     public override string ModuleDescription => "Particle hitmark with damage digits and configurable sound toggles.";
 	public static HitMarkPlugin Instance { get; private set; } = null!;
