@@ -19,7 +19,7 @@ namespace CS2_HitMark;
 public class HitMarkPlugin : BasePlugin, IPluginConfig<Config>
 {
     public override string ModuleName => "CS2 HitMark";
-    public override string ModuleVersion => "1.5.0";
+    public override string ModuleVersion => "1.5.1";
     public override string ModuleAuthor => "DearCrazyLeaf";
     public override string ModuleDescription => "Particle hitmark with damage digits and configurable sound toggles.";
 	public static HitMarkPlugin Instance { get; private set; } = null!;
@@ -64,6 +64,7 @@ public class HitMarkPlugin : BasePlugin, IPluginConfig<Config>
         RegisterListener<Listeners.OnEntityDeleted>(OnEntityDeleted);
         AddCommand("css_hitmark", "Toggle hitmark particles on/off for yourself.", OnToggleHitMarkCommand);
         AddCommand("css_hitsound", "Toggle hitmark sounds on/off for yourself.", OnToggleSoundCommand);
+        AddCommand("css_hitmark_particle_test", "Spawn a particle at your crosshair for testing.", OnTestParticleCommand);
 
 
         HookUserMessage(208, um =>
@@ -229,6 +230,44 @@ public class HitMarkPlugin : BasePlugin, IPluginConfig<Config>
                 : "hitmark.command.sound_off"
         ]);
         QueueSaveSettings(player, playerData);
+    }
+
+    private void OnTestParticleCommand(CCSPlayerController? player, CommandInfo info)
+    {
+        if (player == null || !player.IsValid)
+        {
+            info.ReplyToCommand("This command must be used by a player.");
+            return;
+        }
+
+        string path = string.Empty;
+        if (info.ArgCount >= 2)
+        {
+            path = info.GetArg(1).Trim();
+        }
+
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            if (Config.DamageDigitParticles != null && Config.DamageDigitParticles.Count > 0)
+            {
+                path = Config.DamageDigitParticles[0];
+            }
+            else
+            {
+                path = Config.HitMarkHeadshotParticle;
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            info.ReplyToCommand("No particle path available to test.");
+            return;
+        }
+
+        bool spawned = Helper.SpawnCrosshairParticle(player, path, Config.HitMarkDistance, 1.0f, Config.HitMarkInput);
+        info.ReplyToCommand(spawned
+            ? $"Spawned test particle: {path}"
+            : $"Failed to spawn particle: {path}");
     }
 
     private void OnEntityDeleted(CEntityInstance entity)
