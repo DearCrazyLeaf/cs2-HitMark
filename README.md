@@ -64,38 +64,38 @@ Config path:
   "version": 1,                      // Don't change this
   "mute_default_headshot_bodyshot": true, // Mute default hit sounds if custom sounds exist
   "hitmark_enabled": true,           // Enable hitmark particles
-  "hitmark_headshot_particle": "particles/exg/exg_hitmarker_3d_head.vpcf",
-  "hitmark_bodyshot_particle": "particles/exg/exg_hitmarker2.vpcf",
+  "hitmark_headshot_particle": "particles/.../head.vpcf",
+  "hitmark_bodyshot_particle": "particles/.../body.vpcf",
   "hitmark_headshot_duration": 0.3,  // Headshot particle lifetime (sec)
   "hitmark_bodyshot_duration": 0.25, // Bodyshot particle lifetime (sec)
   "hitmark_distance": 60,            // Distance in front of view (world units)
   "hitmark_input": "Start",          // Optional input, use empty or NONE to skip
   "damage_digits_enabled": true,     // Enable particle damage digits
   "damage_digit_particles": [
-    "particles/exg/hitmarker/0.vpcf",
-    "particles/exg/hitmarker/1.vpcf",
-    "particles/exg/hitmarker/2.vpcf",
-    "particles/exg/hitmarker/3.vpcf",
-    "particles/exg/hitmarker/4.vpcf",
-    "particles/exg/hitmarker/5.vpcf",
-    "particles/exg/hitmarker/6.vpcf",
-    "particles/exg/hitmarker/7.vpcf",
-    "particles/exg/hitmarker/8.vpcf",
-    "particles/exg/hitmarker/9.vpcf"
+    "particles/.../0.vpcf",
+    "particles/.../1.vpcf",
+    "particles/.../2.vpcf",
+    "particles/.../3.vpcf",
+    "particles/.../4.vpcf",
+    "particles/.../5.vpcf",
+    "particles/.../6.vpcf",
+    "particles/.../7.vpcf",
+    "particles/.../8.vpcf",
+    "particles/.../9.vpcf"
   ],
-  "damage_headshot_duration": 0.3,   // Headshot digits lifetime (sec)
-  "damage_bodyshot_duration": 0.25,  // Bodyshot digits lifetime (sec)
-  "damage_height": 5,               // Height above victim (world units)
-  "damage_spacing": 6,               // Digit spacing (world units)
+  "damage_headshot_duration": 0.4,   // Headshot digits lifetime (sec)
+  "damage_bodyshot_duration": 0.4,  // Bodyshot digits lifetime (sec)
+  "damage_height": 0,               // Height above victim (world units)
+  "damage_spacing": 13,               // Digit spacing (world units)
   "damage_offset_x": 0,              // Horizontal offset (world units)
   "damage_offset_y": 0,              // Vertical offset (world units)
   "damage_input": "Start",           // Optional input, use empty or NONE to skip
   "max_active_particles_per_player": 30, // 0 = unlimited
   "headshot_sounds": [
-    "sounds/goldkingz/hitmark/headshot.vsnd"
+    "sounds/.../headshot.vsnd"
   ],
   "bodyshot_sounds": [
-    "sounds/goldkingz/hitmark/bodyhit.vsnd"
+    "sounds/.../bodyhit.vsnd"
   ],
   "debug": false,
   "mysql": {
@@ -187,38 +187,38 @@ Issues and pull requests are welcome
   "version": 1,                      // 请勿修改
   "mute_default_headshot_bodyshot": true, // 有自定义音效时静音默认命中音效
   "hitmark_enabled": true,           // 启用 HitMark 粒子
-  "hitmark_headshot_particle": "particles/exg/exg_hitmarker_3d_head.vpcf",
-  "hitmark_bodyshot_particle": "particles/exg/exg_hitmarker2.vpcf",
+  "hitmark_headshot_particle": "particles/.../head.vpcf",
+  "hitmark_bodyshot_particle": "particles/.../body.vpcf",
   "hitmark_headshot_duration": 0.3,  // 爆头时长(秒)
   "hitmark_bodyshot_duration": 0.25, // 身体时长(秒)
   "hitmark_distance": 60,            // 准星前方距离(世界单位)
   "hitmark_input": "Start",          // 可选输入，留空或 NONE 跳过
   "damage_digits_enabled": true,     // 启用数字粒子
   "damage_digit_particles": [
-    "particles/exg/hitmarker/0.vpcf",
-    "particles/exg/hitmarker/1.vpcf",
-    "particles/exg/hitmarker/2.vpcf",
-    "particles/exg/hitmarker/3.vpcf",
-    "particles/exg/hitmarker/4.vpcf",
-    "particles/exg/hitmarker/5.vpcf",
-    "particles/exg/hitmarker/6.vpcf",
-    "particles/exg/hitmarker/7.vpcf",
-    "particles/exg/hitmarker/8.vpcf",
-    "particles/exg/hitmarker/9.vpcf"
+    "particles/.../0.vpcf",
+    "particles/.../1.vpcf",
+    "particles/.../2.vpcf",
+    "particles/.../3.vpcf",
+    "particles/.../4.vpcf",
+    "particles/.../5.vpcf",
+    "particles/.../6.vpcf",
+    "particles/.../7.vpcf",
+    "particles/.../8.vpcf",
+    "particles/.../9.vpcf"
   ],
-  "damage_headshot_duration": 0.3,   // 爆头数字时长(秒)
-  "damage_bodyshot_duration": 0.25,  // 身体数字时长(秒)
-  "damage_height": 5,               // 受击者上方高度(世界单位)
-  "damage_spacing": 6,               // 数字间距(世界单位)
+  "damage_headshot_duration": 0.4,   // 爆头数字时长(秒)
+  "damage_bodyshot_duration": 0.4,  // 身体数字时长(秒)
+  "damage_height": 0,               // 受击者上方高度(世界单位)
+  "damage_spacing": 13,               // 数字间距(世界单位)
   "damage_offset_x": 0,              // 横向偏移
   "damage_offset_y": 0,              // 纵向偏移
   "damage_input": "Start",           // 可选输入，留空或 NONE 跳过
   "max_active_particles_per_player": 30, // 0 = 不限制
   "headshot_sounds": [
-    "sounds/goldkingz/hitmark/headshot.vsnd"
+    "sounds/.../headshot.vsnd"
   ],
   "bodyshot_sounds": [
-    "sounds/goldkingz/hitmark/bodyhit.vsnd"
+    "sounds/.../bodyhit.vsnd"
   ],
   "debug": false,
   "mysql": {
