@@ -61,35 +61,48 @@ Config path:
 
 ```json
 {
-  "version": 1,                      // Don't change this
+  "version": 1,                          // Do not change
   "mute_default_headshot_bodyshot": true, // Mute default hit sounds if custom sounds exist
-  "hitmark_enabled": true,           // Enable hitmark particles
+  "hitmark_enabled": true,               // Enable hitmark particles
   "hitmark_headshot_particle": "particles/.../head.vpcf",
   "hitmark_bodyshot_particle": "particles/.../body.vpcf",
-  "hitmark_headshot_duration": 0.3,  // Headshot particle lifetime (sec)
-  "hitmark_bodyshot_duration": 0.25, // Bodyshot particle lifetime (sec)
-  "hitmark_distance": 60,            // Distance in front of view (world units)
-  "hitmark_input": "Start",          // Optional input, use empty or NONE to skip
-  "damage_digits_enabled": true,     // Enable particle damage digits
-  "damage_digit_particles": [
-    "particles/.../0.vpcf",
-    "particles/.../1.vpcf",
-    "particles/.../2.vpcf",
-    "particles/.../3.vpcf",
-    "particles/.../4.vpcf",
-    "particles/.../5.vpcf",
-    "particles/.../6.vpcf",
-    "particles/.../7.vpcf",
-    "particles/.../8.vpcf",
-    "particles/.../9.vpcf"
+  "hitmark_headshot_duration": 0.3,      // Headshot particle lifetime (sec)
+  "hitmark_bodyshot_duration": 0.25,     // Bodyshot particle lifetime (sec)
+  "hitmark_distance": 60,                // Distance in front of view (used when no impact position)
+  "hitmark_input": "Start",              // Optional input, use empty or NONE to skip
+
+  "damage_digits_enabled": true,         // Enable particle damage digits
+  "damage_digit_particles": [            // Bodyshot digits (0-9)
+    "particles/.../num_0.vpcf",
+    "particles/.../num_1.vpcf",
+    "particles/.../num_2.vpcf",
+    "particles/.../num_3.vpcf",
+    "particles/.../num_4.vpcf",
+    "particles/.../num_5.vpcf",
+    "particles/.../num_6.vpcf",
+    "particles/.../num_7.vpcf",
+    "particles/.../num_8.vpcf",
+    "particles/.../num_9.vpcf"
   ],
-  "damage_headshot_duration": 0.4,   // Headshot digits lifetime (sec)
-  "damage_bodyshot_duration": 0.4,  // Bodyshot digits lifetime (sec)
-  "damage_height": 0,               // Height above victim (world units)
-  "damage_spacing": 13,               // Digit spacing (world units)
-  "damage_offset_x": 0,              // Horizontal offset (world units)
-  "damage_offset_y": 0,              // Vertical offset (world units)
-  "damage_input": "Start",           // Optional input, use empty or NONE to skip
+  "damage_digit_particles_headshot": [   // Optional headshot digits (0-9). Leave empty to reuse body list
+    "particles/.../headshot/num_0_headshot.vpcf",
+    "particles/.../headshot/num_1_headshot.vpcf",
+    "particles/.../headshot/num_2_headshot.vpcf",
+    "particles/.../headshot/num_3_headshot.vpcf",
+    "particles/.../headshot/num_4_headshot.vpcf",
+    "particles/.../headshot/num_5_headshot.vpcf",
+    "particles/.../headshot/num_6_headshot.vpcf",
+    "particles/.../headshot/num_7_headshot.vpcf",
+    "particles/.../headshot/num_8_headshot.vpcf",
+    "particles/.../headshot/num_9_headshot.vpcf"
+  ],
+  "damage_headshot_duration": 0.4,       // Headshot digits lifetime (sec)
+  "damage_bodyshot_duration": 0.4,       // Bodyshot digits lifetime (sec)
+  "damage_height": -75,                  // Extra Z offset from spawn position
+  "damage_spacing": 13,                  // Digit spacing along view-right (world units)
+  "damage_offset_x": 0,                  // Horizontal offset (world units)
+  "damage_offset_y": 0,                  // Vertical offset (world units)
+  "damage_input": "Start",               // Optional input, use empty or NONE to skip
   "max_active_particles_per_player": 30, // 0 = unlimited
   "headshot_sounds": [
     "sounds/.../headshot.vsnd"
@@ -109,7 +122,6 @@ Config path:
   }
 }
 ```
-
 > [!NOTE]
 > Particle paths must be precached by another plugin or system
 > This plugin does not precache resources
@@ -120,8 +132,9 @@ Enable the `mysql` section to persist per-player hitmark/sound toggles across se
 
 ## Commands
 
-- `!hitmark` - Toggle hitmark particles for yourself
-- `!hitsound` - Toggle hitmark sounds for yourself
+- `css_hitmark` - Toggle hitmark particles for yourself
+- `css_hitsound` - Toggle hitmark sounds for yourself
+- `css_hitmark_particle_test` - Spawn a test particle at crosshair (optional)
 
 ## Contributing
 
@@ -206,9 +219,21 @@ Issues and pull requests are welcome
     "particles/.../8.vpcf",
     "particles/.../9.vpcf"
   ],
+  "damage_digit_particles_headshot": [
+    "particles/.../headshot/num_0_headshot.vpcf",
+    "particles/.../headshot/num_1_headshot.vpcf",
+    "particles/.../headshot/num_2_headshot.vpcf",
+    "particles/.../headshot/num_3_headshot.vpcf",
+    "particles/.../headshot/num_4_headshot.vpcf",
+    "particles/.../headshot/num_5_headshot.vpcf",
+    "particles/.../headshot/num_6_headshot.vpcf",
+    "particles/.../headshot/num_7_headshot.vpcf",
+    "particles/.../headshot/num_8_headshot.vpcf",
+    "particles/.../headshot/num_9_headshot.vpcf"
+  ],
   "damage_headshot_duration": 0.4,   // 爆头数字时长(秒)
   "damage_bodyshot_duration": 0.4,  // 身体数字时长(秒)
-  "damage_height": 0,               // 受击者上方高度(世界单位)
+  "damage_height": -75,               // 受击者上方高度(世界单位)
   "damage_spacing": 13,               // 数字间距(世界单位)
   "damage_offset_x": 0,              // 横向偏移
   "damage_offset_y": 0,              // 纵向偏移

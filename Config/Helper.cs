@@ -272,7 +272,19 @@ public class Helper
 
     private static void TrySpawnDamageParticles(CCSPlayerController attacker, CCSPlayerController victim, int damage, bool headShot, Config config, Vector? impactPos)
     {
-        var digits = config.DamageDigitParticles;
+        List<string>? digits = config.DamageDigitParticles;
+        if (headShot && config.DamageDigitParticlesHeadshot != null && config.DamageDigitParticlesHeadshot.Count > 0)
+        {
+            if (config.DamageDigitParticlesHeadshot.Count >= 10)
+            {
+                digits = config.DamageDigitParticlesHeadshot;
+            }
+            else
+            {
+                DebugMessage("Headshot digits list incomplete (need 10 entries), falling back to body digits.");
+            }
+        }
+
         if (digits == null || digits.Count < 10)
         {
             DebugMessage("Damage digits list missing or incomplete (need 10 entries).");

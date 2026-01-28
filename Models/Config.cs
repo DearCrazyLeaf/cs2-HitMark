@@ -40,6 +40,9 @@ namespace CS2_HitMark.Models
         [JsonPropertyName("damage_digit_particles")]
         public List<string> DamageDigitParticles { get; set; } = [];
 
+        [JsonPropertyName("damage_digit_particles_headshot")]
+        public List<string> DamageDigitParticlesHeadshot { get; set; } = [];
+
         [JsonPropertyName("damage_headshot_duration")]
         public float DamageHeadshotDuration { get; set; } = 0.4f;
 
@@ -47,7 +50,7 @@ namespace CS2_HitMark.Models
         public float DamageBodyshotDuration { get; set; } = 0.4f;
 
         [JsonPropertyName("damage_height")]
-        public float DamageHeight { get; set; } = 0f;
+        public float DamageHeight { get; set; } = -75f;
 
         [JsonPropertyName("damage_spacing")]
         public float DamageSpacing { get; set; } = 13f;
