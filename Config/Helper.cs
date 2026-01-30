@@ -498,7 +498,7 @@ public class Helper
     private static Vector RightFromYaw(QAngle angles)
     {
         float yawRad = angles.Y * (MathF.PI / 180f);
-        return new Vector(-MathF.Sin(yawRad), MathF.Cos(yawRad), 0f);
+        return new Vector(MathF.Sin(yawRad), -MathF.Cos(yawRad), 0f);
     }
 
     private static Vector Add(Vector a, Vector b)
