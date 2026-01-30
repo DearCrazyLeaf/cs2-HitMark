@@ -37,7 +37,7 @@
 - **Configurable Durations**: Separate timings for headshot and bodyshot effects
 - **Performance Guard**: Optional max active particles per player
 
-![123](https://github.com/user-attachments/assets/0467a3b9-b39c-4ec5-8a74-a3f93c309cfe)
+![QQ20260129-061930](https://github.com/user-attachments/assets/7af3a07b-2d55-4cd4-8935-6a6a377ae8e0)
 
 ## Requirements
 
@@ -173,7 +173,7 @@ Issues and pull requests are welcome
 - **独立时间**：爆头与身体命中时长分别配置
 - **性能保护**：可限制玩家活跃粒子数量
 
-![123](https://github.com/user-attachments/assets/0467a3b9-b39c-4ec5-8a74-a3f93c309cfe)
+![QQ20260129-061930](https://github.com/user-attachments/assets/7af3a07b-2d55-4cd4-8935-6a6a377ae8e0)
 
 ## 需求
 
