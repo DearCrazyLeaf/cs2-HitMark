@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="cs2-HitMark/cs2-HitMark.csproj" />
+  <Project Path="cs2-HitMarkApi/cs2-HitMarkApi.csproj" />
+</Solution>

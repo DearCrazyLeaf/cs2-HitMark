@@ -1,17 +1,11 @@
 using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
+using CounterStrikeSharp.API.Core.Capabilities;
 using CounterStrikeSharp.API.Modules.Commands;
-using CounterStrikeSharp.API.Core.Attributes.Registration;
-using CounterStrikeSharp.API.Core.Attributes;
-using CS2_HitMark.Models;
-using CounterStrikeSharp.API.Modules.UserMessages;
-using CounterStrikeSharp.API.Modules.Entities;
-using CounterStrikeSharp.API.Modules.Cvars;
 using CounterStrikeSharp.API.Modules.Utils;
-using CounterStrikeSharp.API.Modules.Timers;
-using System.Collections.Generic;
+using CS2_HitMark.Models;
+using CS2_HitMarkApi;
 using Microsoft.Extensions.Localization;
-using System.Threading.Tasks;
 
 namespace CS2_HitMark;
 
@@ -66,6 +60,7 @@ public class HitMarkPlugin : BasePlugin, IPluginConfig<Config>
         AddCommand("css_hitsound", "Toggle hitmark sounds on/off for yourself.", OnToggleSoundCommand);
         AddCommand("css_hitmark_particle_test", "Spawn a particle at your crosshair for testing.", OnTestParticleCommand);
 
+        Capabilities.RegisterPluginCapability(IHitMarkApi.Capability, () => new HitMarkApi());
 
         HookUserMessage(208, um =>
         {
@@ -139,7 +134,7 @@ public class HitMarkPlugin : BasePlugin, IPluginConfig<Config>
 
         bool isHeadShot = Hitgroup == 1;
         Vector? impactPos = TryGetRecentImpact(attacker.Slot, out var impact) ? impact : null;
-        Helper.StartHitMark(attacker, victim, isHeadShot, totalDamage, impactPos);
+        Helper.StartHitMark(attacker, isHeadShot, totalDamage, impactPos);
         
         return HookResult.Continue;
     }

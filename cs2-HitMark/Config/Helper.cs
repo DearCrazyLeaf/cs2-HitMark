@@ -104,7 +104,7 @@ public class Helper
             .FindAllEntitiesByDesignerName<CCSPlayerController>("cs_player_controller")
             .Where(p => p != null && p.IsValid &&
                         (IncludeBots || (!p.IsBot && !p.IsHLTV)) &&
-                        p.Connected == PlayerConnectedState.PlayerConnected &&
+                        p.Connected == PlayerConnectedState.Connected &&
                         ((IncludeCT && p.TeamNum == (byte)CsTeam.CounterTerrorist) ||
                         (IncludeT && p.TeamNum == (byte)CsTeam.Terrorist) ||
                         (IncludeSPEC && p.TeamNum == (byte)CsTeam.Spectator)))
@@ -118,7 +118,7 @@ public class Helper
         return Utilities.GetPlayers().Count(p =>
             p != null &&
             p.IsValid &&
-            p.Connected == PlayerConnectedState.PlayerConnected &&
+            p.Connected == PlayerConnectedState.Connected &&
             (IncludeBots || (!p.IsBot && !p.IsHLTV)) &&
             ((IncludeCT && p.TeamNum == (byte)CsTeam.CounterTerrorist) ||
             (IncludeT && p.TeamNum == (byte)CsTeam.Terrorist) ||
@@ -187,13 +187,12 @@ public class Helper
         }
     }
 
-    public static void StartHitMark(CCSPlayerController attacker, CCSPlayerController victim, bool headShot, int damage, Vector? impactPos)
+    public static void StartHitMark(CCSPlayerController attacker, bool headShot, int? damage, Vector? impactPos)
     {
         var g_Main = HitMarkPlugin.Instance.g_Main;
         var config = HitMarkPlugin.Instance.Config;
 
         if (attacker == null || !attacker.IsValid) return;
-        if (victim == null || !victim.IsValid) return;
 
         if (!g_Main.Player_Data.ContainsKey(attacker))
         {
@@ -209,11 +208,11 @@ public class Helper
         {
             if (playerData.HitMarkEnabled && config.HitMarkEnabled)
             {
-                TrySpawnHitParticle(attacker, victim, headShot, config, impactPos);
+                TrySpawnHitParticle(attacker, headShot, config, impactPos);
             }
-            if (playerData.HitMarkEnabled && config.DamageDigitsEnabled)
+            if (playerData.HitMarkEnabled && config.DamageDigitsEnabled && damage.HasValue)
             {
-                TrySpawnDamageParticles(attacker, victim, damage, headShot, config, impactPos);
+                TrySpawnDamageParticles(attacker, damage.Value, headShot, config, impactPos);
             }
 
             if (!playerData.SoundEnabled)
@@ -251,7 +250,7 @@ public class Helper
         }
     }
 
-    private static void TrySpawnHitParticle(CCSPlayerController attacker, CCSPlayerController victim, bool headShot, Config config, Vector? impactPos)
+    private static void TrySpawnHitParticle(CCSPlayerController attacker, bool headShot, Config config, Vector? impactPos)
     {
         string path = headShot ? config.HitMarkHeadshotParticle : config.HitMarkBodyshotParticle;
         if (string.IsNullOrWhiteSpace(path))
@@ -270,7 +269,7 @@ public class Helper
         }
     }
 
-    private static void TrySpawnDamageParticles(CCSPlayerController attacker, CCSPlayerController victim, int damage, bool headShot, Config config, Vector? impactPos)
+    private static void TrySpawnDamageParticles(CCSPlayerController attacker, int damage, bool headShot, Config config, Vector? impactPos)
     {
         List<string>? digits = config.DamageDigitParticles;
         if (headShot && config.DamageDigitParticlesHeadshot != null && config.DamageDigitParticlesHeadshot.Count > 0)
@@ -300,7 +299,7 @@ public class Helper
 
         float lifetime = headShot ? config.DamageHeadshotDuration : config.DamageBodyshotDuration;
         DebugMessage($"Spawning damage digits '{damageText}' (headshot={headShot}).");
-        SpawnDamageDigitParticles(attacker, victim, damageText, digits, config, lifetime, impactPos);
+        SpawnDamageDigitParticles(attacker, damageText, digits, config, lifetime, impactPos);
     }
 
     public static bool SpawnCrosshairParticle(CCSPlayerController player, string effectName, float distance, float lifetime, string? acceptInput)
@@ -308,7 +307,7 @@ public class Helper
         return SpawnParticleAtCrosshair(player, effectName, distance, lifetime, acceptInput, null);
     }
 
-    private static void SpawnDamageDigitParticles(CCSPlayerController attacker, CCSPlayerController victim, string damageText, List<string> digits, Config config, float lifetime, Vector? impactPos)
+    private static void SpawnDamageDigitParticles(CCSPlayerController attacker, string damageText, List<string> digits, Config config, float lifetime, Vector? impactPos)
     {
         int count = damageText.Length;
         if (count <= 0)
